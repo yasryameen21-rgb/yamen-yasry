@@ -42,12 +42,12 @@ class Settings(BaseSettings):
     firebase_token_uri: str = "https://oauth2.googleapis.com/token"
     
     # CORS
-    allowed_origins: List[str] = [
-        "http://localhost:3000",
-        "http://localhost:8000",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:8000",
-    ]
+   allowed_origins: List[str] = [
+    "http://localhost:3000",
+    "https://your-frontend-url.github.io", 
+    "https://yamen-yasry-backend.onrender.com"
+]
+
     
     class Config:
         # تحميل ملف .env المناسب للبيئة
