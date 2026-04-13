@@ -41,11 +41,16 @@ class Settings(BaseSettings):
     firebase_auth_uri: str = "https://accounts.google.com/o/oauth2/auth"
     firebase_token_uri: str = "https://oauth2.googleapis.com/token"
     
-    # CORS
-   allowed_origins: List[str] = [
+   # CORS - السماح فقط بالنطاقات الموثوقة
+allowed_origins: List[str] = [
     "http://localhost:3000",
-    "https://your-frontend-url.github.io", 
-    "https://yamen-yasry-backend.onrender.com"
+    "http://localhost:8000",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:8000",
+    "https://yasryameen21-rgb.github.io", # رابط GitHub Pages الخاص بك
+    "https://yamen-chat-web-frontend.onrender.com", # إذا كنت نشرت الواجهة على Render أيضاً
+    "https://yamen-yasry-backend.onrender.com" # رابط السيرفر نفسه
+]
 ]
 
     
