@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     firebase_token_uri: str = "https://oauth2.googleapis.com/token"
     
    # CORS - السماح فقط بالنطاقات الموثوقة
-allowed_origins: List[str] = [
+allowed_origins: List[str] = 
     "http://localhost:3000",
     "http://localhost:8000",
     "http://127.0.0.1:3000",
