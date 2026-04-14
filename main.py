@@ -21,7 +21,10 @@ from routes_recording import router as recording_router
 from routes_firebase import router as firebase_router
 from routes_sync import router as sync_router
 
+from pydantic import BaseModel
 
+class PostCreate(BaseModel):
+    content: str
 # ==================== Startup Event ====================
 
 @asynccontextmanager
@@ -71,7 +74,9 @@ async def health_check():
         "version": settings.app_version,
         "env": os.getenv("RENDER", "local")
     }
-
+@app.get("/api/posts")
+async def get_posts():
+    return posts_db[::-1] # يرجع المنشورات من الأحدث للأقدم
 
 # المسار الرئيسي
 @app.get("/")
@@ -170,3 +175,12 @@ if __name__ == "__main__":
         port=port,
         reload=settings.debug
     )
+# قائمة مؤقتة لتجربة المنشورات (قبل ربط قاعدة البيانات بشكل كامل)
+posts_db = []
+
+@app.post("/api/posts")
+async def create_post(post: PostCreate):
+    # هنا نقوم بحفظ المنشور
+    new_post = {"id": len(posts_db) + 1, "content": post.content, "username": "مستخدم يامن"}
+    posts_db.append(new_post)
+    return {"status": "success", "message": "تم النشر بنجاح"}
