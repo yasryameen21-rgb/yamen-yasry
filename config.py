@@ -50,7 +50,7 @@ allowed_origins: List[str] = [
     "https://yasryameen21-rgb.github.io", # رابط GitHub Pages الخاص بك
     "https://yamen-chat-web-frontend.onrender.com", # إذا كنت نشرت الواجهة على Render أيضاً
     "https://yamen-yasry-backend.onrender.com" # رابط السيرفر نفسه
-]
+
 
 
     
