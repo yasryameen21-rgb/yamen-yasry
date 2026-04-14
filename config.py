@@ -54,11 +54,11 @@ allowed_origins: List[str] = (
 
 
     
-    class Config:
+class Config:
         # تحميل ملف .env المناسب للبيئة
-        env_file = f".env.{APP_ENV}" if APP_ENV else ".env"
-        case_sensitive = False
-        extra = "allow"
+    env_file = f".env.{APP_ENV}" if APP_ENV else ".env"
+    case_sensitive = False
+    extra = "allow"
 
 
 @lru_cache()
