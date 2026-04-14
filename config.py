@@ -54,8 +54,7 @@ allowed_origins: List[str] = [
 
 
     
-class Config:
-       
+class Config:      
     env_file = f".env.{APP_ENV}" if APP_ENV else ".env"
     case_sensitive = False
     extra = "allow"
