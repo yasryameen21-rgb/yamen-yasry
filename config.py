@@ -51,7 +51,7 @@ allowed_origins: List[str] = [
     "https://yamen-chat-web-frontend.onrender.com", # إذا كنت نشرت الواجهة على Render أيضاً
     "https://yamen-yasry-backend.onrender.com" # رابط السيرفر نفسه
 ]
-]
+
 
     
     class Config:
