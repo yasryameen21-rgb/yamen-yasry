@@ -46,10 +46,6 @@ class NotificationTypeEnum(str, Enum):
 class UserRegister(BaseModel):
     """نموذج التسجيل"""
     name: str = Field(..., min_length=2, max_length=100)
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    nickname: Optional[str] = None
-    birth_date: Optional[datetime] = None
     email: EmailStr
     password: str = Field(..., min_length=8)
     phone_number: Optional[str] = None
@@ -97,10 +93,6 @@ class UserResponse(BaseModel):
     """نموذج استجابة المستخدم"""
     id: str
     name: str
-    first_name: Optional[str]
-    last_name: Optional[str]
-    nickname: Optional[str]
-    birth_date: Optional[datetime]
     email: str
     phone_number: Optional[str]
     role: UserRoleEnum
@@ -424,6 +416,42 @@ class Token(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
+    expires_in: int = 3600
+
+
+class OnboardingRegistrationRequest(BaseModel):
+    """نموذج التسجيل السريع من شاشة الإنشاء الجديدة"""
+    first_name: str = Field(..., min_length=2, max_length=60)
+    last_name: str = Field(..., min_length=2, max_length=60)
+    date_of_birth: Optional[datetime] = None
+    contact_method: str = Field(..., pattern="^(phone|email)$")
+    contact: str = Field(..., min_length=3, max_length=120)
+
+
+class OnboardingProfileResponse(BaseModel):
+    """ملف تعريف مبسط يرجع بعد التسجيل السريع"""
+    id: str
+    user_id: str
+    first_name: str
+    last_name: str
+    display_name: str
+    date_of_birth: Optional[datetime] = None
+    contact_method: str
+    contact: str
+    created_at: datetime
+
+
+class OnboardingAuthResponse(BaseModel):
+    """استجابة التسجيل السريع مع التوكنات"""
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    expires_in: int
+    user_id: str
+    display_name: str
+    email: Optional[str] = None
+    phone_number: Optional[str] = None
+    profile: OnboardingProfileResponse
 
 
 class TokenData(BaseModel):

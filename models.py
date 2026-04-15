@@ -143,10 +143,6 @@ class User(Base):
     
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String, nullable=False)
-    first_name = Column(String, nullable=True)
-    last_name = Column(String, nullable=True)
-    nickname = Column(String, nullable=True)
-    birth_date = Column(DateTime, nullable=True)
     email = Column(String, unique=True, nullable=False, index=True)
     phone_number = Column(String, nullable=True)
     password_hash = Column(String, nullable=False)

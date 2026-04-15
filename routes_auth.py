@@ -10,7 +10,8 @@ from database import get_db
 from models import User
 from schemas import (
     UserRegister, UserLogin, UserResponse, ChangePassword,
-    ResetPassword, VerifyEmail, Token, OtpRequest, OtpVerify
+    ResetPassword, VerifyEmail, Token, OtpRequest, OtpVerify,
+    OnboardingRegistrationRequest, OnboardingAuthResponse, OnboardingProfileResponse
 )
 from security import (
     verify_password, get_password_hash, create_tokens, verify_token
@@ -35,10 +36,6 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
     # إنشاء مستخدم جديد
     new_user = User(
         name=user_data.name,
-        first_name=user_data.first_name,
-        last_name=user_data.last_name,
-        nickname=user_data.nickname,
-        birth_date=user_data.birth_date,
         email=user_data.email,
         password_hash=get_password_hash(user_data.password),
         phone_number=user_data.phone_number,
@@ -50,6 +47,81 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
     db.refresh(new_user)
     
     return new_user
+
+
+@router.post("/register-profile", response_model=OnboardingAuthResponse)
+async def register_profile(data: OnboardingRegistrationRequest, db: Session = Depends(get_db)):
+    """
+    تسجيل سريع من شاشة إنشاء الحساب الجديدة بالموبايل
+    """
+    display_name = f"{data.first_name.strip()} {data.last_name.strip()}".strip()
+
+    normalized_email = None
+    normalized_phone = None
+
+    if data.contact_method == "email":
+        normalized_email = data.contact.strip().lower()
+        existing_user = db.query(User).filter(User.email == normalized_email).first()
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="البريد الإلكتروني مسجل بالفعل"
+            )
+    else:
+        normalized_phone = data.contact.strip()
+        generated_local_email = f"{normalized_phone}@familyhub.local"
+        existing_phone = db.query(User).filter(User.phone_number == normalized_phone).first()
+        existing_email = db.query(User).filter(User.email == generated_local_email).first()
+        if existing_phone or existing_email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="رقم الجوال مسجل بالفعل"
+            )
+        normalized_email = generated_local_email
+
+    generated_password = get_password_hash(f"FamilyHub@{(normalized_phone or normalized_email.split('@')[0])[-6:]}")
+
+    new_user = User(
+        name=display_name,
+        email=normalized_email,
+        password_hash=generated_password,
+        phone_number=normalized_phone,
+        is_verified=(data.contact_method == "phone")
+    )
+
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    tokens = create_tokens(
+        user_id=new_user.id,
+        email=new_user.email,
+        role=new_user.role.value
+    )
+
+    profile = OnboardingProfileResponse(
+        id=f"profile_{new_user.id}",
+        user_id=new_user.id,
+        first_name=data.first_name.strip(),
+        last_name=data.last_name.strip(),
+        display_name=display_name,
+        date_of_birth=data.date_of_birth,
+        contact_method=data.contact_method,
+        contact=data.contact.strip(),
+        created_at=datetime.utcnow()
+    )
+
+    return OnboardingAuthResponse(
+        access_token=tokens.access_token,
+        refresh_token=tokens.refresh_token,
+        token_type=tokens.token_type,
+        expires_in=tokens.expires_in,
+        user_id=new_user.id,
+        display_name=display_name,
+        email=(normalized_email if data.contact_method == "email" else None),
+        phone_number=normalized_phone,
+        profile=profile
+    )
 
 
 @router.post("/login", response_model=Token)
