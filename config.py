@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     debug: bool = False
     
     # قاعدة البيانات - تم تحديثها لرابط Render
-    database_url: str = os.getenv("DATABASE_URL", "postgresql://yamenshat_db_user:K0v4262p6Z9v095u6f873arhot0@dpg-d7bsqu117lss73arhot0-a.oregon-postgres.render.com/yamenshat_dbresql://yamenshat_user:oEDMUD2CnteWuPGtpJ7yYTgeuQyJyXzo@dpg-d7bsqu117lss73arhot0-a/yamenshat_db")
+    database_url: str = os.getenv("DATABASE_URL")
     
     # JWT والمصادقة
     secret_key: str = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
