@@ -26,16 +26,11 @@ class FirebaseService:
                 return
             
             # إنشاء بيانات الاعتماد
-            # معالجة مفتاح Firebase الخاص للتعامل مع الرموز المهربة (\n)
-            private_key = settings.firebase_private_key
-            if private_key and "\\n" in private_key:
-                private_key = private_key.replace("\\n", "\n")
-            
             cred_dict = {
                 "type": "service_account",
                 "project_id": settings.firebase_project_id,
                 "private_key_id": settings.firebase_private_key_id,
-                "private_key": private_key,
+                "private_key": settings.firebase_private_key,
                 "client_email": settings.firebase_client_email,
                 "client_id": settings.firebase_client_id,
                 "auth_uri": settings.firebase_auth_uri,

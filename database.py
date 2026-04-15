@@ -37,17 +37,10 @@ def init_db():
     """إنشاء جميع الجداول"""
     if engine:
         try:
-            # التحقق من نوع قاعدة البيانات؛ إذا كانت SQLite، نتجاهل أخطاء "table already exists"
-            # أو نعتمد على create_all التي هي بطبيعتها لا تعيد إنشاء الجداول الموجودة
-            # الخطأ في السجلات قد يكون بسبب محاولة أخرى أو تداخل في الـ lifespan
-            Base.metadata.create_all(bind=engine, checkfirst=True)
-            print("✅ تم فحص/إنشاء جميع جداول قاعدة البيانات بنجاح")
+            Base.metadata.create_all(bind=engine)
+            print("✅ تم إنشاء جميع جداول قاعدة البيانات بنجاح")
         except Exception as e:
-            # إذا كان الخطأ هو أن الجدول موجود بالفعل، نعتبره نجاحاً
-            if "already exists" in str(e):
-                print("ℹ️ الجداول موجودة بالفعل، تم التخطي بنجاح")
-            else:
-                print(f"⚠️ فشل إنشاء الجداول: {str(e)}")
+            print(f"⚠️ فشل إنشاء الجداول: {str(e)}")
     else:
         print("⚠️ لم يتم إنشاء الجداول لأن المحرك غير متوفر")
 

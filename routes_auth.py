@@ -10,7 +10,7 @@ from database import get_db
 from models import User
 from schemas import (
     UserRegister, UserLogin, UserResponse, ChangePassword,
-    ResetPassword, VerifyEmail, Token
+    ResetPassword, VerifyEmail, Token, OtpRequest, OtpVerify
 )
 from security import (
     verify_password, get_password_hash, create_tokens, verify_token
@@ -35,6 +35,10 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
     # إنشاء مستخدم جديد
     new_user = User(
         name=user_data.name,
+        first_name=user_data.first_name,
+        last_name=user_data.last_name,
+        nickname=user_data.nickname,
+        birth_date=user_data.birth_date,
         email=user_data.email,
         password_hash=get_password_hash(user_data.password),
         phone_number=user_data.phone_number,
@@ -222,3 +226,72 @@ async def logout(current_user_id: str = None):
     
     # في التطبيق الحقيقي، يتم إضافة التوكن إلى قائمة سوداء
     return {"success": True, "message": "تم تسجيل الخروج بنجاح"}
+
+
+# محاكاة بسيطة للـ OTP (في الإنتاج يجب ربطه بخدمة SMS أو SMTP)
+# ملاحظة: هذا للتوضيح والربط، في الإنتاج يجب استخدام Redis أو قاعدة بيانات لتخزين الرموز
+temp_otp_storage = {}
+
+@router.post("/send-otp")
+async def send_otp(request: OtpRequest, db: Session = Depends(get_db)):
+    """
+    إرسال رمز التحقق (محاكاة)
+    """
+    identifier = request.phone_number or request.email
+    if not identifier:
+        raise HTTPException(status_code=400, detail="يجب توفير رقم الهاتف أو البريد الإلكتروني")
+    
+    # توليد رمز ثابت للتجربة أو عشوائي
+    otp = "123456" 
+    temp_otp_storage[identifier] = otp
+    
+    print(f"--- OTP for {identifier}: {otp} ---")
+    
+    return {"success": True, "message": f"تم إرسال الرمز إلى {identifier}"}
+
+@router.post("/login-phone", response_model=Token)
+async def login_phone(data: OtpVerify, db: Session = Depends(get_db)):
+    """
+    تسجيل الدخول برقم الهاتف
+    """
+    if not data.phone_number or data.otp_code != temp_otp_storage.get(data.phone_number):
+        raise HTTPException(status_code=401, detail="رمز التحقق غير صحيح")
+    
+    # البحث عن المستخدم برقم الهاتف أو إنشاؤه
+    user = db.query(User).filter(User.phone_number == data.phone_number).first()
+    if not user:
+        # إنشاء مستخدم جديد تلقائياً عند الدخول لأول مرة بالهاتف
+        user = User(
+            name=f"User_{data.phone_number[-4:]}",
+            email=f"{data.phone_number}@familyhub.local",
+            password_hash=get_password_hash("default_pass_otp"),
+            phone_number=data.phone_number,
+            is_verified=True
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    
+    return create_tokens(user_id=user.id, email=user.email, role=user.role.value)
+
+@router.post("/login-email", response_model=Token)
+async def login_email(data: OtpVerify, db: Session = Depends(get_db)):
+    """
+    تسجيل الدخول بالبريد الإلكتروني (OTP)
+    """
+    if not data.email or data.otp_code != temp_otp_storage.get(data.email):
+        raise HTTPException(status_code=401, detail="رمز التحقق غير صحيح")
+    
+    user = db.query(User).filter(User.email == data.email).first()
+    if not user:
+        user = User(
+            name=data.email.split('@')[0],
+            email=data.email,
+            password_hash=get_password_hash("default_pass_otp"),
+            is_verified=True
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    
+    return create_tokens(user_id=user.id, email=user.email, role=user.role.value)

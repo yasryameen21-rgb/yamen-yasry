@@ -46,6 +46,10 @@ class NotificationTypeEnum(str, Enum):
 class UserRegister(BaseModel):
     """نموذج التسجيل"""
     name: str = Field(..., min_length=2, max_length=100)
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    nickname: Optional[str] = None
+    birth_date: Optional[datetime] = None
     email: EmailStr
     password: str = Field(..., min_length=8)
     phone_number: Optional[str] = None
@@ -93,6 +97,10 @@ class UserResponse(BaseModel):
     """نموذج استجابة المستخدم"""
     id: str
     name: str
+    first_name: Optional[str]
+    last_name: Optional[str]
+    nickname: Optional[str]
+    birth_date: Optional[datetime]
     email: str
     phone_number: Optional[str]
     role: UserRoleEnum
@@ -534,3 +542,16 @@ class SignalingMessage(BaseModel):
     type: str # 'offer', 'answer', 'candidate'
     payload: Dict
     target_user_id: Optional[str] = None
+
+# ==================== نماذج OTP والمصادقة المتقدمة ====================
+
+class OtpRequest(BaseModel):
+    """نموذج طلب إرسال رمز التحقق"""
+    phone_number: Optional[str] = None
+    email: Optional[EmailStr] = None
+
+class OtpVerify(BaseModel):
+    """نموذج التحقق من رمز التحقق"""
+    phone_number: Optional[str] = None
+    email: Optional[EmailStr] = None
+    otp_code: str
