@@ -2,7 +2,7 @@
 نماذج Pydantic للتحقق من البيانات والاستجابة
 """
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, AliasChoices, ConfigDict
 from typing import Optional, List, Dict
 from datetime import datetime
 from enum import Enum
@@ -340,6 +340,50 @@ class GroupResponse(BaseModel):
         from_attributes = True
 
 
+class MarketplaceItemCreate(BaseModel):
+    """نموذج إنشاء عنصر في السوق"""
+    group_id: Optional[str] = None
+    title: str = Field(..., min_length=1, max_length=200)
+    description: str = Field(..., min_length=1, max_length=5000)
+    price: int = Field(..., ge=0)
+    currency: str = "YER"
+    category: str = "other"
+    location: Optional[str] = None
+    image_urls: List[str] = []
+
+
+class MarketplaceItemUpdate(BaseModel):
+    """نموذج تحديث عنصر في السوق"""
+    title: Optional[str] = None
+    description: Optional[str] = None
+    price: Optional[int] = Field(default=None, ge=0)
+    currency: Optional[str] = None
+    category: Optional[str] = None
+    status: Optional[str] = None
+    location: Optional[str] = None
+    image_urls: Optional[List[str]] = None
+
+
+class MarketplaceItemResponse(BaseModel):
+    """نموذج استجابة عنصر في السوق"""
+    id: str
+    seller_id: str
+    group_id: Optional[str]
+    title: str
+    description: str
+    price: int
+    currency: str
+    category: str
+    status: str
+    location: Optional[str]
+    image_urls: List[str] = []
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 # ==================== نماذج القصص ====================
 
 class StoryCreate(BaseModel):
@@ -480,89 +524,96 @@ class RecordingStatusEnum(str, Enum):
 
 class LiveStreamCreate(BaseModel):
     """نموذج بدء بث مباشر"""
-    conversation_id: Optional[str] = None
+    model_config = ConfigDict(populate_by_name=True)
+
+    conversation_id: Optional[str] = Field(default=None, validation_alias=AliasChoices("conversation_id", "conversationId"), serialization_alias="conversationId")
     title: Optional[str] = None
-    sdp_offer: Optional[str] = None
+    sdp_offer: Optional[str] = Field(default=None, validation_alias=AliasChoices("sdp_offer", "sdpOffer"), serialization_alias="sdpOffer")
 
 
 class LiveStreamUpdate(BaseModel):
     """نموذج تحديث بث مباشر"""
+    model_config = ConfigDict(populate_by_name=True)
+
     status: Optional[LiveStreamStatusEnum] = None
-    sdp_answer: Optional[str] = None
-    viewer_count: Optional[int] = None
+    sdp_answer: Optional[str] = Field(default=None, validation_alias=AliasChoices("sdp_answer", "sdpAnswer"), serialization_alias="sdpAnswer")
+    viewer_count: Optional[int] = Field(default=None, validation_alias=AliasChoices("viewer_count", "viewerCount"), serialization_alias="viewerCount")
 
 
 class LiveStreamResponse(BaseModel):
     """نموذج استجابة البث المباشر"""
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
     id: str
-    host_id: str
-    conversation_id: Optional[str]
+    host_id: str = Field(validation_alias=AliasChoices("host_id", "hostId"), serialization_alias="hostId")
+    conversation_id: Optional[str] = Field(default=None, validation_alias=AliasChoices("conversation_id", "conversationId"), serialization_alias="conversationId")
     title: Optional[str]
     description: Optional[str]
     status: LiveStreamStatusEnum
-    sdp_offer: Optional[str]
-    sdp_answer: Optional[str]
-    viewer_count: int
-    peak_viewer_count: int
-    is_recording_enabled: bool
-    recording_status: Optional[RecordingStatusEnum]
-    recording_url: Optional[str]
-    recording_duration: int
-    recording_size_mb: int
-    thumbnail_url: Optional[str]
-    started_at: datetime
-    ended_at: Optional[datetime]
-    recording_completed_at: Optional[datetime]
-    
-    class Config:
-        from_attributes = True
+    sdp_offer: Optional[str] = Field(default=None, validation_alias=AliasChoices("sdp_offer", "sdpOffer"), serialization_alias="sdpOffer")
+    sdp_answer: Optional[str] = Field(default=None, validation_alias=AliasChoices("sdp_answer", "sdpAnswer"), serialization_alias="sdpAnswer")
+    viewer_count: int = Field(validation_alias=AliasChoices("viewer_count", "viewerCount"), serialization_alias="viewerCount")
+    peak_viewer_count: int = Field(validation_alias=AliasChoices("peak_viewer_count", "peakViewerCount"), serialization_alias="peakViewerCount")
+    is_recording_enabled: bool = Field(validation_alias=AliasChoices("is_recording_enabled", "isRecordingEnabled"), serialization_alias="isRecordingEnabled")
+    recording_status: Optional[RecordingStatusEnum] = Field(default=None, validation_alias=AliasChoices("recording_status", "recordingStatus"), serialization_alias="recordingStatus")
+    recording_url: Optional[str] = Field(default=None, validation_alias=AliasChoices("recording_url", "recordingUrl"), serialization_alias="recordingUrl")
+    recording_duration: int = Field(validation_alias=AliasChoices("recording_duration", "recordingDuration"), serialization_alias="recordingDuration")
+    recording_size_mb: int = Field(validation_alias=AliasChoices("recording_size_mb", "recordingSizeMb"), serialization_alias="recordingSizeMb")
+    thumbnail_url: Optional[str] = Field(default=None, validation_alias=AliasChoices("thumbnail_url", "thumbnailUrl"), serialization_alias="thumbnailUrl")
+    started_at: datetime = Field(validation_alias=AliasChoices("started_at", "startedAt"), serialization_alias="startedAt")
+    ended_at: Optional[datetime] = Field(default=None, validation_alias=AliasChoices("ended_at", "endedAt"), serialization_alias="endedAt")
+    recording_completed_at: Optional[datetime] = Field(default=None, validation_alias=AliasChoices("recording_completed_at", "recordingCompletedAt"), serialization_alias="recordingCompletedAt")
 
 
 class CloudRecordingCreate(BaseModel):
     """نموذج إنشاء تسجيل سحابي"""
-    live_stream_id: str
+    model_config = ConfigDict(populate_by_name=True)
+
+    live_stream_id: str = Field(validation_alias=AliasChoices("live_stream_id", "liveStreamId"), serialization_alias="liveStreamId")
     title: str = Field(..., min_length=1, max_length=200)
     description: Optional[str] = None
-    video_url: str
-    thumbnail_url: Optional[str] = None
-    duration_seconds: int = 0
-    file_size_mb: int = 0
-    video_quality: str = "720p"
-    is_public: bool = True
-    allowed_viewers: List[str] = []
-    expires_at: Optional[datetime] = None
+    video_url: str = Field(validation_alias=AliasChoices("video_url", "videoUrl"), serialization_alias="videoUrl")
+    thumbnail_url: Optional[str] = Field(default=None, validation_alias=AliasChoices("thumbnail_url", "thumbnailUrl"), serialization_alias="thumbnailUrl")
+    duration_seconds: int = Field(default=0, validation_alias=AliasChoices("duration_seconds", "durationSeconds"), serialization_alias="durationSeconds")
+    file_size_mb: int = Field(default=0, validation_alias=AliasChoices("file_size_mb", "fileSizeMb"), serialization_alias="fileSizeMb")
+    video_quality: str = Field(default="720p", validation_alias=AliasChoices("video_quality", "videoQuality"), serialization_alias="videoQuality")
+    is_public: bool = Field(default=True, validation_alias=AliasChoices("is_public", "isPublic"), serialization_alias="isPublic")
+    allowed_viewers: List[str] = Field(default_factory=list, validation_alias=AliasChoices("allowed_viewers", "allowedViewers"), serialization_alias="allowedViewers")
+    expires_at: Optional[datetime] = Field(default=None, validation_alias=AliasChoices("expires_at", "expiresAt"), serialization_alias="expiresAt")
 
 
 class CloudRecordingUpdate(BaseModel):
     """نموذج تحديث تسجيل سحابي"""
+    model_config = ConfigDict(populate_by_name=True)
+
     title: Optional[str] = None
     description: Optional[str] = None
-    is_public: Optional[bool] = None
-    allowed_viewers: Optional[List[str]] = None
-    expires_at: Optional[datetime] = None
+    is_public: Optional[bool] = Field(default=None, validation_alias=AliasChoices("is_public", "isPublic"), serialization_alias="isPublic")
+    allowed_viewers: Optional[List[str]] = Field(default=None, validation_alias=AliasChoices("allowed_viewers", "allowedViewers"), serialization_alias="allowedViewers")
+    expires_at: Optional[datetime] = Field(default=None, validation_alias=AliasChoices("expires_at", "expiresAt"), serialization_alias="expiresAt")
+    recording_status: Optional[RecordingStatusEnum] = Field(default=None, validation_alias=AliasChoices("recording_status", "recordingStatus"), serialization_alias="recordingStatus")
 
 
 class CloudRecordingResponse(BaseModel):
     """نموذج استجابة التسجيل السحابي"""
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
     id: str
-    live_stream_id: str
+    live_stream_id: str = Field(validation_alias=AliasChoices("live_stream_id", "liveStreamId"), serialization_alias="liveStreamId")
     title: str
     description: Optional[str]
-    video_url: str
-    thumbnail_url: Optional[str]
-    duration_seconds: int
-    file_size_mb: int
-    video_quality: str
-    recording_status: RecordingStatusEnum
-    view_count: int
-    is_public: bool
-    allowed_viewers: List[str]
-    created_at: datetime
-    updated_at: datetime
-    expires_at: Optional[datetime]
-    
-    class Config:
-        from_attributes = True
+    video_url: str = Field(validation_alias=AliasChoices("video_url", "videoUrl"), serialization_alias="videoUrl")
+    thumbnail_url: Optional[str] = Field(default=None, validation_alias=AliasChoices("thumbnail_url", "thumbnailUrl"), serialization_alias="thumbnailUrl")
+    duration_seconds: int = Field(validation_alias=AliasChoices("duration_seconds", "durationSeconds"), serialization_alias="durationSeconds")
+    file_size_mb: int = Field(validation_alias=AliasChoices("file_size_mb", "fileSizeMb"), serialization_alias="fileSizeMb")
+    video_quality: str = Field(validation_alias=AliasChoices("video_quality", "videoQuality"), serialization_alias="videoQuality")
+    recording_status: RecordingStatusEnum = Field(validation_alias=AliasChoices("recording_status", "recordingStatus"), serialization_alias="recordingStatus")
+    view_count: int = Field(validation_alias=AliasChoices("view_count", "viewCount"), serialization_alias="viewCount")
+    is_public: bool = Field(validation_alias=AliasChoices("is_public", "isPublic"), serialization_alias="isPublic")
+    allowed_viewers: List[str] = Field(default_factory=list, validation_alias=AliasChoices("allowed_viewers", "allowedViewers"), serialization_alias="allowedViewers")
+    created_at: datetime = Field(validation_alias=AliasChoices("created_at", "createdAt"), serialization_alias="createdAt")
+    updated_at: datetime = Field(validation_alias=AliasChoices("updated_at", "updatedAt"), serialization_alias="updatedAt")
+    expires_at: Optional[datetime] = Field(default=None, validation_alias=AliasChoices("expires_at", "expiresAt"), serialization_alias="expiresAt")
 
 
 class SignalingMessage(BaseModel):

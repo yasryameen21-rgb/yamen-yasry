@@ -10,6 +10,7 @@ import json
 from database import get_db
 from models import Post, Comment, User, ReactionType
 from schemas import PostCreate, PostResponse, PostUpdate, CommentCreate, CommentResponse
+from security import get_current_user
 
 router = APIRouter(prefix="/api/posts", tags=["Posts"])
 
@@ -17,7 +18,7 @@ router = APIRouter(prefix="/api/posts", tags=["Posts"])
 @router.post("", response_model=PostResponse)
 async def create_post(
     post_data: PostCreate,
-    current_user_id: str = None,
+    current_user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -107,7 +108,7 @@ async def get_posts(
 async def update_post(
     post_id: str,
     post_data: PostUpdate,
-    current_user_id: str = None,
+    current_user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -146,7 +147,7 @@ async def update_post(
 @router.delete("/{post_id}")
 async def delete_post(
     post_id: str,
-    current_user_id: str = None,
+    current_user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -183,7 +184,7 @@ async def delete_post(
 async def add_reaction(
     post_id: str,
     reaction_type: str,
-    current_user_id: str = None,
+    current_user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -220,7 +221,7 @@ async def add_reaction(
 async def remove_reaction(
     post_id: str,
     reaction_type: str,
-    current_user_id: str = None,
+    current_user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -256,7 +257,7 @@ async def remove_reaction(
 async def create_comment(
     post_id: str,
     comment_data: CommentCreate,
-    current_user_id: str = None,
+    current_user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -317,7 +318,7 @@ async def get_comments(
 @router.delete("/comments/{comment_id}")
 async def delete_comment(
     comment_id: str,
-    current_user_id: str = None,
+    current_user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -352,7 +353,7 @@ async def delete_comment(
 async def add_comment_reaction(
     comment_id: str,
     reaction_type: str,
-    current_user_id: str = None,
+    current_user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """

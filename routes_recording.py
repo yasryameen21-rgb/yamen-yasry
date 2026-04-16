@@ -16,9 +16,9 @@ from schemas import (
     CloudRecordingResponse,
     LiveStreamResponse
 )
-from main import get_current_user
+from security import get_current_user
 
-router = APIRouter(prefix="/recordings", tags=["Cloud Recording & VOD"])
+router = APIRouter(prefix="/api/recordings", tags=["Cloud Recording & VOD"])
 
 
 # ==================== إنشاء وإدارة التسجيلات ====================

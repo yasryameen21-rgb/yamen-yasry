@@ -8,7 +8,7 @@ from database import get_db
 from models import LiveStream, LiveStreamStatus, Message, MessageType, Conversation, CloudRecording, RecordingStatus
 from schemas import LiveStreamCreate, LiveStreamUpdate, LiveStreamResponse, SignalingMessage
 from security import get_current_user
-router = APIRouter(prefix="/live", tags=["Live Video"])
+router = APIRouter(prefix="/api/live", tags=["Live Video"])
 
 # إدارة اتصالات WebSocket
 class ConnectionManager:
@@ -40,6 +40,18 @@ class ConnectionManager:
                 await self.send_personal_message(message, user_id)
 
 manager = ConnectionManager()
+
+@router.get("", response_model=List[LiveStreamResponse])
+async def list_live_streams(
+    status: str | None = None,
+    skip: int = 0,
+    limit: int = 20,
+    db: Session = Depends(get_db)
+):
+    query = db.query(LiveStream)
+    if status:
+        query = query.filter(LiveStream.status == status)
+    return query.order_by(LiveStream.started_at.desc()).offset(skip).limit(limit).all()
 
 @router.post("/start", response_model=LiveStreamResponse)
 async def start_live_stream(

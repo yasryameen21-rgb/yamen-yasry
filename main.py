@@ -20,6 +20,11 @@ from routes_live import router as live_router
 from routes_recording import router as recording_router
 from routes_firebase import router as firebase_router
 from routes_sync import router as sync_router
+from routes_tasks import router as tasks_router
+from routes_groups import router as groups_router
+from routes_stories import router as stories_router
+from routes_marketplace import router as marketplace_router
+from routes_messages import conversation_router, message_router
 
 
 # ==================== Startup Event ====================
@@ -94,6 +99,12 @@ app.include_router(live_router)
 app.include_router(recording_router)
 app.include_router(firebase_router)
 app.include_router(sync_router)
+app.include_router(tasks_router)
+app.include_router(groups_router)
+app.include_router(stories_router)
+app.include_router(marketplace_router)
+app.include_router(conversation_router)
+app.include_router(message_router)
 
 
 # ==================== معالجة الأخطاء ====================
@@ -115,16 +126,14 @@ async def http_exception_handler(request, exc):
 async def general_exception_handler(request, exc):
     """معالج الاستثناءات العامة"""
     print(f"❌ خطأ: {str(exc)}")
-    payload = {
-        "success": False,
-        "message": "حدث خطأ في الخادم",
-        "error_code": "INTERNAL_SERVER_ERROR"
-    }
-    if settings.debug:
-        payload["detail"] = str(exc)
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content=payload
+        content={
+            "success": False,
+            "message": "حدث خطأ في الخادم",
+            "error_code": "INTERNAL_SERVER_ERROR",
+            "detail": str(exc)
+        }
     )
 
 
@@ -152,7 +161,9 @@ async def add_current_user_to_request(request, call_next):
 
 # ==================== تحديث Dependency ====================
 
-def get_current_user_id(request) -> str:
+from fastapi import Request
+
+def get_current_user_id(request: Request) -> str:
     """الحصول على معرف المستخدم الحالي من الطلب"""
     return getattr(request.state, "current_user_id", None)
 

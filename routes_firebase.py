@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 from database import get_db
 from models import User, Notification
+from security import get_current_user
 from firebase_service import (
     firebase_service,
     send_like_notification,
@@ -65,7 +66,7 @@ class SubscribeToTopicRequest(BaseModel):
 @router.post("/register-device")
 async def register_device_token(
     request: DeviceTokenRequest,
-    current_user_id: str = None,
+    current_user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -111,7 +112,7 @@ async def register_device_token(
 @router.delete("/unregister-device")
 async def unregister_device_token(
     device_token: str,
-    current_user_id: str = None,
+    current_user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -148,7 +149,7 @@ async def unregister_device_token(
 
 @router.get("/devices")
 async def get_user_devices(
-    current_user_id: str = None,
+    current_user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -180,7 +181,7 @@ async def get_user_devices(
 @router.post("/send-notification")
 async def send_notification(
     request: SendNotificationRequest,
-    current_user_id: str = None,
+    current_user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -250,7 +251,7 @@ async def send_notification(
 @router.post("/send-multicast")
 async def send_multicast_notification(
     request: SendMulticastRequest,
-    current_user_id: str = None,
+    current_user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -310,7 +311,7 @@ async def send_multicast_notification(
 @router.post("/send-topic-notification")
 async def send_topic_notification(
     request: SendTopicNotificationRequest,
-    current_user_id: str = None,
+    current_user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -344,7 +345,7 @@ async def send_topic_notification(
 @router.post("/subscribe-topic")
 async def subscribe_to_topic(
     request: SubscribeToTopicRequest,
-    current_user_id: str = None,
+    current_user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -379,7 +380,7 @@ async def subscribe_to_topic(
 @router.post("/unsubscribe-topic")
 async def unsubscribe_from_topic(
     request: SubscribeToTopicRequest,
-    current_user_id: str = None,
+    current_user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """

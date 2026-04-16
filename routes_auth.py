@@ -14,7 +14,7 @@ from schemas import (
     OnboardingRegistrationRequest, OnboardingAuthResponse, OnboardingProfileResponse
 )
 from security import (
-    verify_password, get_password_hash, create_tokens, verify_token
+    verify_password, get_password_hash, create_tokens, verify_token, get_current_user
 )
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
@@ -200,7 +200,7 @@ async def refresh_token(request: dict, db: Session = Depends(get_db)):
 @router.post("/change-password")
 async def change_password(
     data: ChangePassword,
-    current_user_id: str = None,
+    current_user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """

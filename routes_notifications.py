@@ -9,6 +9,7 @@ from typing import List
 from database import get_db
 from models import Notification, User
 from schemas import NotificationCreate, NotificationResponse
+from security import get_current_user
 
 router = APIRouter(prefix="/api/notifications", tags=["Notifications"])
 
@@ -16,7 +17,7 @@ router = APIRouter(prefix="/api/notifications", tags=["Notifications"])
 @router.post("", response_model=NotificationResponse)
 async def create_notification(
     notification_data: NotificationCreate,
-    current_user_id: str = None,
+    current_user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -29,7 +30,8 @@ async def create_notification(
         )
     
     # التحقق من وجود المستخدم
-    user = db.query(User).filter(User.id == notification_data.related_id or current_user_id).first()
+    target_user_id = notification_data.related_id or current_user_id
+    user = db.query(User).filter(User.id == target_user_id).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -38,7 +40,7 @@ async def create_notification(
     
     # إنشاء الإشعار
     new_notification = Notification(
-        user_id=notification_data.related_id or current_user_id,
+        user_id=target_user_id,
         title=notification_data.title,
         message=notification_data.message,
         notification_type=notification_data.notification_type,
@@ -55,7 +57,7 @@ async def create_notification(
 
 @router.get("", response_model=List[NotificationResponse])
 async def get_notifications(
-    current_user_id: str = None,
+    current_user_id: str = Depends(get_current_user),
     skip: int = 0,
     limit: int = 50,
     unread_only: bool = False,
@@ -85,7 +87,7 @@ async def get_notifications(
 @router.get("/{notification_id}", response_model=NotificationResponse)
 async def get_notification(
     notification_id: str,
-    current_user_id: str = None,
+    current_user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -119,7 +121,7 @@ async def get_notification(
 @router.put("/{notification_id}/read")
 async def mark_as_read(
     notification_id: str,
-    current_user_id: str = None,
+    current_user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -155,7 +157,7 @@ async def mark_as_read(
 
 @router.put("/read-all")
 async def mark_all_as_read(
-    current_user_id: str = None,
+    current_user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -180,7 +182,7 @@ async def mark_all_as_read(
 @router.delete("/{notification_id}")
 async def delete_notification(
     notification_id: str,
-    current_user_id: str = None,
+    current_user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -216,7 +218,7 @@ async def delete_notification(
 
 @router.get("/count/unread")
 async def get_unread_count(
-    current_user_id: str = None,
+    current_user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -242,7 +244,7 @@ async def get_unread_count(
 async def send_like_notification(
     post_id: str,
     post_author_id: str,
-    current_user_id: str = None,
+    current_user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -276,7 +278,7 @@ async def send_comment_notification(
     post_id: str,
     post_author_id: str,
     comment_text: str,
-    current_user_id: str = None,
+    current_user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -310,7 +312,7 @@ async def send_task_assignment_notification(
     task_id: str,
     assigned_to_id: str,
     task_title: str,
-    current_user_id: str = None,
+    current_user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """

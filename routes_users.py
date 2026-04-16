@@ -9,13 +9,14 @@ from typing import List
 from database import get_db
 from models import User, UserSettings
 from schemas import UserResponse, UserUpdate, UserDetailResponse, UserSettingsResponse, UserSettingsUpdate
+from security import get_current_user
 
 router = APIRouter(prefix="/api/users", tags=["Users"])
 
 
 @router.get("/me", response_model=UserDetailResponse)
 async def get_current_user(
-    current_user_id: str = None,
+    current_user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -68,7 +69,7 @@ async def get_all_users(
 @router.put("/me", response_model=UserResponse)
 async def update_current_user(
     user_data: UserUpdate,
-    current_user_id: str = None,
+    current_user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -101,7 +102,7 @@ async def update_current_user(
 @router.post("/friends/{friend_id}")
 async def add_friend(
     friend_id: str,
-    current_user_id: str = None,
+    current_user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -132,7 +133,7 @@ async def add_friend(
 @router.delete("/friends/{friend_id}")
 async def remove_friend(
     friend_id: str,
-    current_user_id: str = None,
+    current_user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -177,7 +178,7 @@ async def get_user_friends(user_id: str, db: Session = Depends(get_db)):
 
 @router.get("/settings/me", response_model=UserSettingsResponse)
 async def get_user_settings(
-    current_user_id: str = None,
+    current_user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -206,7 +207,7 @@ async def get_user_settings(
 @router.put("/settings/me", response_model=UserSettingsResponse)
 async def update_user_settings(
     settings_data: UserSettingsUpdate,
-    current_user_id: str = None,
+    current_user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -240,7 +241,7 @@ async def update_user_settings(
 @router.post("/ban/{user_id}")
 async def ban_user(
     user_id: str,
-    current_user_id: str = None,
+    current_user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -275,7 +276,7 @@ async def ban_user(
 @router.post("/unban/{user_id}")
 async def unban_user(
     user_id: str,
-    current_user_id: str = None,
+    current_user_id: str = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """

@@ -9,8 +9,8 @@ from datetime import datetime
 
 from database import get_db
 from security import get_current_user
-from models import User, Post, Group, Notification, MarketplaceItem, SharedTask
-import schemas
+from models import User, Post, Group, Notification, MarketplaceItem, SharedTask, Story, CloudRecording, Message
+from contract_serializers import serialize_snapshot
 
 router = APIRouter(
     prefix="/api/sync",
@@ -51,33 +51,40 @@ async def sync_all_data(
         # 6. جلب المهام المسندة للمستخدم
         tasks = db.query(SharedTask).filter(SharedTask.assigned_to == current_user_id).all()
 
-        # تحويل البيانات إلى نماذج Pydantic لضمان التوافق مع JSON
-        return {
-            "success": True,
-            "timestamp": datetime.utcnow().isoformat(),
-            "data": {
-                "profile": {
-                    "id": user.id,
-                    "name": user.name,
-                    "email": user.email,
-                    "profile_image_url": user.profile_image_url,
-                    "role": user.role
-                },
-                "posts": [schemas.PostResponse.from_orm(p) for p in posts],
-                "groups": [schemas.GroupResponse.from_orm(g) for g in groups],
-                "notifications": [schemas.NotificationResponse.from_orm(n) for n in notifications],
-                "marketplace_items": marketplace_items, # MarketplaceItem ليس له schema في الملف الحالي
-                "tasks": [schemas.TaskResponse.from_orm(t) for t in tasks]
-            }
-        }
+        stories = db.query(Story).filter(Story.user_id == current_user_id).order_by(Story.created_at.desc()).limit(20).all()
+        recordings = db.query(CloudRecording).order_by(CloudRecording.created_at.desc()).limit(20).all()
+        messages = db.query(Message).filter(Message.sender_id == current_user_id).order_by(Message.created_at.desc()).limit(50).all()
+
+        snapshot = serialize_snapshot(
+            posts=posts,
+            users=[user],
+            groups=groups,
+            notifications=notifications,
+            marketplace_items=marketplace_items,
+            tasks=tasks,
+            stories=stories,
+            recordings=recordings,
+            messages=messages,
+        )
+        snapshot["timestamp"] = datetime.utcnow().isoformat()
+        return snapshot
     except Exception as e:
         print(f"❌ خطأ في المزامنة: {str(e)}")
         # في حالة وجود خطأ في الـ ORM mapping (مثل نقص حقول في الـ schema)
         # سنقوم بإرجاع البيانات بشكل مبسط لضمان عمل المسار
         return {
-            "success": False,
-            "message": f"حدث خطأ أثناء مزامنة البيانات: {str(e)}",
-            "error_code": "SYNC_ERROR"
+            "posts": [],
+            "comments": [],
+            "messages": [],
+            "tasks": [],
+            "users": [],
+            "stories": [],
+            "notifications": [],
+            "recordings": [],
+            "groups": [],
+            "marketplaceItems": [],
+            "timestamp": datetime.utcnow().isoformat(),
+            "error": f"حدث خطأ أثناء مزامنة البيانات: {str(e)}"
         }
 
 @router.post("/push")

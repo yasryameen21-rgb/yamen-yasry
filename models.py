@@ -190,7 +190,16 @@ class User(Base):
     comments = relationship("Comment", back_populates="author")
     messages = relationship("Message", back_populates="sender")
     notifications = relationship("Notification", back_populates="user")
-    tasks = relationship("SharedTask", back_populates="assigned_user")
+    tasks = relationship(
+        "SharedTask",
+        back_populates="assigned_user",
+        foreign_keys="SharedTask.assigned_to"
+    )
+    created_tasks = relationship(
+        "SharedTask",
+        foreign_keys="SharedTask.created_by",
+        back_populates="creator"
+    )
     groups = relationship("Group", secondary=group_members, back_populates="members")
     settings = relationship("UserSettings", back_populates="user", uselist=False)
     stories = relationship("Story", back_populates="author")
@@ -417,7 +426,16 @@ class SharedTask(Base):
     
     # العلاقات
     group = relationship("Group", back_populates="tasks")
-    assigned_user = relationship("User", back_populates="tasks")
+    assigned_user = relationship(
+        "User",
+        foreign_keys=[assigned_to],
+        back_populates="tasks"
+    )
+    creator = relationship(
+        "User",
+        foreign_keys=[created_by],
+        back_populates="created_tasks"
+    )
     
     def __repr__(self):
         return f"<SharedTask(id={self.id}, title={self.title})>"

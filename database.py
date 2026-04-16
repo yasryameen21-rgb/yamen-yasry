@@ -2,37 +2,30 @@
 إعدادات قاعدة البيانات والاتصال
 """
 
-from fastapi import HTTPException, status
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import StaticPool
 from config import settings
 from models import Base
+import os
 
-
-def normalize_database_url(url: str) -> str:
-    if not url:
-        return "sqlite:///./yamenshat.db"
-    if url.startswith("postgres://"):
-        return url.replace("postgres://", "postgresql://", 1)
-    return url
-
-
-database_url = normalize_database_url(settings.database_url)
-
+# إنشاء محرك قاعدة البيانات
 try:
-    if database_url.startswith("sqlite"):
+    if settings.database_url.startswith("sqlite"):
+        # للـ SQLite نستخدم StaticPool للاختبار
         engine = create_engine(
-            database_url,
+            settings.database_url,
             connect_args={"check_same_thread": False},
             poolclass=StaticPool,
         )
     else:
+        # لقواعد البيانات الأخرى
         engine = create_engine(
-            database_url,
+            settings.database_url,
             pool_pre_ping=True,
             pool_recycle=3600,
         )
+    # إنشاء جلسة
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 except Exception as e:
     print(f"⚠️ خطأ في إعداد محرك قاعدة البيانات: {str(e)}")
@@ -41,6 +34,7 @@ except Exception as e:
 
 
 def init_db():
+    """إنشاء جميع الجداول"""
     if engine:
         try:
             Base.metadata.create_all(bind=engine)
@@ -52,11 +46,10 @@ def init_db():
 
 
 def get_db() -> Session:
+    """الحصول على جلسة قاعدة البيانات"""
     if not SessionLocal:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="قاعدة البيانات غير متاحة حالياً. تحقق من DATABASE_URL وإعدادات Render."
-        )
+        print("⚠️ قاعدة البيانات غير متوفرة")
+        return None
     db = SessionLocal()
     try:
         yield db
@@ -64,5 +57,7 @@ def get_db() -> Session:
         db.close()
 
 
+# إنشاء الجداول عند بدء التطبيق
 def startup_event():
+    """حدث بدء التطبيق"""
     init_db()
