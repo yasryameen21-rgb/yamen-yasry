@@ -79,7 +79,8 @@ async def register_profile(data: OnboardingRegistrationRequest, db: Session = De
             )
         normalized_email = generated_local_email
 
-    generated_password = get_password_hash(f"FamilyHub@{(normalized_phone or normalized_email.split('@')[0])[-6:]}")
+    temp_secret_suffix = (normalized_phone or normalized_email.split('@')[0])[-6:]
+    generated_password = get_password_hash(f"FH@{temp_secret_suffix}")
 
     new_user = User(
         name=display_name,

@@ -7,7 +7,39 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.10.12
+      - key: APP_ENV
+        value: production
+      - key: APP_NAME
+        value: Yamenshat API
+      - key: APP_VERSION
+        value: 2.5.0
+      - key: DEBUG
+        value: "False"
       - key: DATABASE_URL
         fromDatabase:
           name: yamenshat-db
           property: connectionString
+      - key: SECRET_KEY
+        sync: false
+      - key: ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "30"
+      - key: REFRESH_TOKEN_EXPIRE_DAYS
+        value: "7"
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY_ID
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY
+        sync: false
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false
+      - key: FIREBASE_CLIENT_ID
+        sync: false
+      - key: FIREBASE_AUTH_URI
+        value: https://accounts.google.com/o/oauth2/auth
+      - key: FIREBASE_TOKEN_URI
+        value: https://oauth2.googleapis.com/token

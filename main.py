@@ -25,6 +25,7 @@ from routes_groups import router as groups_router
 from routes_stories import router as stories_router
 from routes_marketplace import router as marketplace_router
 from routes_messages import conversation_router, message_router
+from routes_reports import router as reports_router
 
 
 # ==================== Startup Event ====================
@@ -67,15 +68,25 @@ app.add_middleware(
 # ==================== المسارات ====================
 
 # صحة التطبيق
-@app.get("/api/health")
-async def health_check():
-    """فحص صحة التطبيق"""
+async def _health_payload():
     return {
         "status": "healthy",
         "app_name": settings.app_name,
         "version": settings.app_version,
         "env": os.getenv("RENDER", "local")
     }
+
+
+@app.get("/api/health")
+async def health_check():
+    """فحص صحة التطبيق"""
+    return await _health_payload()
+
+
+@app.get("/health")
+async def health_check_alias():
+    """مسار مختصر لفحص الصحة متوافق مع التوثيق"""
+    return await _health_payload()
 
 
 # المسار الرئيسي
@@ -105,6 +116,7 @@ app.include_router(stories_router)
 app.include_router(marketplace_router)
 app.include_router(conversation_router)
 app.include_router(message_router)
+app.include_router(reports_router)
 
 
 # ==================== معالجة الأخطاء ====================
@@ -126,14 +138,17 @@ async def http_exception_handler(request, exc):
 async def general_exception_handler(request, exc):
     """معالج الاستثناءات العامة"""
     print(f"❌ خطأ: {str(exc)}")
+    payload = {
+        "success": False,
+        "message": "حدث خطأ في الخادم",
+        "error_code": "INTERNAL_SERVER_ERROR",
+    }
+    if settings.debug:
+        payload["detail"] = str(exc)
+
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={
-            "success": False,
-            "message": "حدث خطأ في الخادم",
-            "error_code": "INTERNAL_SERVER_ERROR",
-            "detail": str(exc)
-        }
+        content=payload,
     )
 
 

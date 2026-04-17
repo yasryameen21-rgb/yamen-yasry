@@ -438,6 +438,110 @@ class UserSettingsResponse(BaseModel):
         from_attributes = True
 
 
+class FollowResponse(BaseModel):
+    id: str
+    follower_id: str
+    following_id: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class FriendRequestCreate(BaseModel):
+    message: Optional[str] = Field(default=None, max_length=500)
+
+
+class FriendRequestResponse(BaseModel):
+    id: str
+    sender_id: str
+    receiver_id: str
+    message: Optional[str]
+    status: str
+    created_at: datetime
+    updated_at: datetime
+    responded_at: Optional[datetime]
+
+    class Config:
+        from_attributes = True
+
+
+class RepostCreate(BaseModel):
+    content: Optional[str] = Field(default=None, max_length=1000)
+
+
+class SavedPostResponse(BaseModel):
+    id: str
+    user_id: str
+    post_id: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class PostStatsResponse(BaseModel):
+    post_id: str
+    likes_count: int
+    comments_count: int
+    shares_count: int
+    saves_count: int
+    reactions_breakdown: Dict[str, int] = {}
+
+
+class ReportCreate(BaseModel):
+    target_type: str = Field(..., pattern="^(post|comment|user|live)$")
+    target_id: str = Field(..., min_length=1, max_length=128)
+    reason: str = Field(..., min_length=2, max_length=100)
+    details: Optional[str] = Field(default=None, max_length=1000)
+
+
+class ReportResponse(BaseModel):
+    id: str
+    reporter_id: str
+    target_type: str
+    target_id: str
+    reason: str
+    details: Optional[str]
+    status: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ReportStatusUpdate(BaseModel):
+    status: str = Field(..., pattern="^(pending|reviewing|resolved|rejected)$")
+
+
+class LiveJoinRequestCreate(BaseModel):
+    note: Optional[str] = Field(default=None, max_length=500)
+
+
+class LiveJoinRequestResponse(BaseModel):
+    id: str
+    stream_id: str
+    requester_id: str
+    note: Optional[str]
+    status: str
+    created_at: datetime
+    updated_at: datetime
+    responded_at: Optional[datetime]
+
+    class Config:
+        from_attributes = True
+
+
+class LiveStreamStatsResponse(BaseModel):
+    stream_id: str
+    viewer_count: int
+    peak_viewer_count: int
+    pending_join_requests: int
+    approved_join_requests: int
+    rejected_join_requests: int
+
+
 # ==================== نماذج الاستجابة العامة ====================
 
 class SuccessResponse(BaseModel):

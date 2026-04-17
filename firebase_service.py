@@ -26,20 +26,9 @@ class FirebaseService:
                 return
             
             # معالجة المفتاح الخاص للتعامل مع الرموز المائلة العكسية (\n)
-            # تم إضافة معالجة إضافية لإزالة علامات الاقتباس الزائدة إذا وجدت
             private_key = settings.firebase_private_key
-            
-            if private_key:
-                # إزالة علامات الاقتباس في البداية والنهاية إذا كانت موجودة (شائع عند النسخ من .env)
-                private_key = private_key.strip("'\"")
-                
-                # استبدال \\n بـ \n الحقيقية
-                if "\\n" in private_key:
-                    private_key = private_key.replace("\\n", "\n")
-                
-                # التأكد من وجود ترويسة وتذييل المفتاح بشكل صحيح
-                if "-----BEGIN PRIVATE KEY-----" not in private_key:
-                    print("⚠️ تحذير: مفتاح Firebase الخاص قد يكون بتنسيق غير صحيح (مفقود الترويسة)")
+            if private_key and "\\n" in private_key:
+                private_key = private_key.replace("\\n", "\n")
             
             # إنشاء بيانات الاعتماد
             cred_dict = {
@@ -53,16 +42,12 @@ class FirebaseService:
                 "token_uri": settings.firebase_token_uri,
             }
             
-            # تهيئة Firebase - التحقق مما إذا كان التطبيق مهيأ بالفعل لتجنب خطأ DuplicateApp
-            try:
-                firebase_admin.get_app()
-                print("ℹ️ تطبيق Firebase مهيأ بالفعل")
-            except ValueError:
-                cred = credentials.Certificate(cred_dict)
-                firebase_admin.initialize_app(cred)
-                print("✅ تم تهيئة Firebase بنجاح")
+            # تهيئة Firebase
+            cred = credentials.Certificate(cred_dict)
+            firebase_admin.initialize_app(cred)
             
             self.initialized = True
+            print("✅ تم تهيئة Firebase بنجاح")
         
         except Exception as e:
             print(f"❌ خطأ في تهيئة Firebase: {str(e)}")
@@ -75,7 +60,18 @@ class FirebaseService:
         body: str,
         data: Optional[dict] = None
     ) -> bool:
-        """إرسال إشعار إلى جهاز معين"""
+        """
+        إرسال إشعار إلى جهاز معين
+        
+        Args:
+            device_token: توكن الجهاز
+            title: عنوان الإشعار
+            body: نص الإشعار
+            data: بيانات إضافية
+        
+        Returns:
+            True إذا تم الإرسال بنجاح، False خلاف ذلك
+        """
         if not self.initialized or not device_token:
             return False
         
@@ -96,42 +92,143 @@ class FirebaseService:
         except Exception as e:
             print(f"❌ خطأ في إرسال الإشعار: {str(e)}")
             return False
-
-    # باقي الوظائف (send_multicast, etc.) تظل كما هي في المنطق الأصلي
-    def send_multicast(self, device_tokens: List[str], title: str, body: str, data: Optional[dict] = None) -> dict:
-        if not self.initialized or not device_tokens: return {"success": 0, "failed": len(device_tokens)}
+    
+    def send_multicast(
+        self,
+        device_tokens: List[str],
+        title: str,
+        body: str,
+        data: Optional[dict] = None
+    ) -> dict:
+        """
+        إرسال إشعار متعدد إلى عدة أجهزة
+        
+        Args:
+            device_tokens: قائمة توكنات الأجهزة
+            title: عنوان الإشعار
+            body: نص الإشعار
+            data: بيانات إضافية
+        
+        Returns:
+            قاموس يحتوي على عدد الإشعارات المرسلة والفاشلة
+        """
+        if not self.initialized or not device_tokens:
+            return {"success": 0, "failed": len(device_tokens)}
+        
         try:
-            message = messaging.MulticastMessage(notification=messaging.Notification(title=title, body=body), data=data or {}, tokens=device_tokens)
+            message = messaging.MulticastMessage(
+                notification=messaging.Notification(
+                    title=title,
+                    body=body
+                ),
+                data=data or {},
+                tokens=device_tokens
+            )
+            
             response = messaging.send_multicast(message)
-            return {"success": response.success_count, "failed": response.failure_count}
+            
+            print(f"✅ تم إرسال {response.success_count} إشعار بنجاح")
+            print(f"❌ فشل إرسال {response.failure_count} إشعار")
+            
+            return {
+                "success": response.success_count,
+                "failed": response.failure_count
+            }
+        
         except Exception as e:
             print(f"❌ خطأ في إرسال الإشعارات المتعددة: {str(e)}")
             return {"success": 0, "failed": len(device_tokens)}
-
-    def send_topic_notification(self, topic: str, title: str, body: str, data: Optional[dict] = None) -> bool:
-        if not self.initialized or not topic: return False
-        try:
-            message = messaging.Message(notification=messaging.Notification(title=title, body=body), data=data or {}, topic=topic)
-            messaging.send(message)
-            return True
-        except Exception as e:
-            print(f"❌ خطأ في إرسال الإشعار للموضوع: {str(e)}")
+    
+    def send_topic_notification(
+        self,
+        topic: str,
+        title: str,
+        body: str,
+        data: Optional[dict] = None
+    ) -> bool:
+        """
+        إرسال إشعار إلى موضوع معين
+        
+        Args:
+            topic: اسم الموضوع
+            title: عنوان الإشعار
+            body: نص الإشعار
+            data: بيانات إضافية
+        
+        Returns:
+            True إذا تم الإرسال بنجاح، False خلاف ذلك
+        """
+        if not self.initialized or not topic:
             return False
-
-    def subscribe_to_topic(self, device_tokens: List[str], topic: str) -> bool:
-        if not self.initialized or not device_tokens or not topic: return False
+        
         try:
-            messaging.subscribe_to_topic(device_tokens, topic)
+            message = messaging.Message(
+                notification=messaging.Notification(
+                    title=title,
+                    body=body
+                ),
+                data=data or {},
+                topic=topic
+            )
+            
+            response = messaging.send(message)
+            print(f"✅ تم إرسال الإشعار إلى الموضوع '{topic}': {response}")
             return True
+        
+        except Exception as e:
+            print(f"❌ خطأ في إرسال الإشعار إلى الموضوع: {str(e)}")
+            return False
+    
+    def subscribe_to_topic(
+        self,
+        device_tokens: List[str],
+        topic: str
+    ) -> bool:
+        """
+        الاشتراك في موضوع معين
+        
+        Args:
+            device_tokens: قائمة توكنات الأجهزة
+            topic: اسم الموضوع
+        
+        Returns:
+            True إذا تم الاشتراك بنجاح، False خلاف ذلك
+        """
+        if not self.initialized or not device_tokens or not topic:
+            return False
+        
+        try:
+            response = messaging.subscribe_to_topic(device_tokens, topic)
+            print(f"✅ تم الاشتراك في الموضوع '{topic}' بنجاح")
+            return True
+        
         except Exception as e:
             print(f"❌ خطأ في الاشتراك في الموضوع: {str(e)}")
             return False
-
-    def unsubscribe_from_topic(self, device_tokens: List[str], topic: str) -> bool:
-        if not self.initialized or not device_tokens or not topic: return False
+    
+    def unsubscribe_from_topic(
+        self,
+        device_tokens: List[str],
+        topic: str
+    ) -> bool:
+        """
+        إلغاء الاشتراك من موضوع معين
+        
+        Args:
+            device_tokens: قائمة توكنات الأجهزة
+            topic: اسم الموضوع
+        
+        Returns:
+            True إذا تم إلغاء الاشتراك بنجاح، False خلاف ذلك
+        """
+        if not self.initialized or not device_tokens or not topic:
+            return False
+        
         try:
-            messaging.unsubscribe_from_topic(device_tokens, topic)
+            response = messaging.unsubscribe_from_topic(device_tokens, topic)
+            print(f"✅ تم إلغاء الاشتراك من الموضوع '{topic}' بنجاح")
             return True
+        
         except Exception as e:
             print(f"❌ خطأ في إلغاء الاشتراك من الموضوع: {str(e)}")
             return False
@@ -140,21 +237,92 @@ class FirebaseService:
 # إنشاء مثيل واحد من الخدمة
 firebase_service = FirebaseService()
 
-# وظائف مساعدة
-def send_like_notification(device_token: str, user_name: str, post_id: str) -> bool:
-    return firebase_service.send_notification(device_token=device_token, title="إعجاب جديد 👍", body=f"أعجب {user_name} بمنشورك", data={"type": "like", "post_id": post_id})
 
-def send_comment_notification(device_token: str, user_name: str, comment_text: str, post_id: str) -> bool:
-    return firebase_service.send_notification(device_token=device_token, title="تعليق جديد 💬", body=f"{user_name}: {comment_text[:50]}...", data={"type": "comment", "post_id": post_id})
+# ==================== وظائف مساعدة ====================
 
-def send_friend_request_notification(device_token: str, user_name: str, user_id: str) -> bool:
-    return firebase_service.send_notification(device_token=device_token, title="طلب صداقة جديد 👋", body=f"أرسل لك {user_name} طلب صداقة", data={"type": "friend_request", "user_id": user_id})
+def send_like_notification(
+    device_token: str,
+    user_name: str,
+    post_id: str
+) -> bool:
+    """إرسال إشعار إعجاب"""
+    return firebase_service.send_notification(
+        device_token=device_token,
+        title="إعجاب جديد 👍",
+        body=f"أعجب {user_name} بمنشورك",
+        data={"type": "like", "post_id": post_id}
+    )
 
-def send_message_notification(device_token: str, user_name: str, message_text: str, conversation_id: str) -> bool:
-    return firebase_service.send_notification(device_token=device_token, title=f"رسالة من {user_name} 📨", body=message_text[:50], data={"type": "message", "conversation_id": conversation_id})
 
-def send_task_notification(device_token: str, task_title: str, assigned_by: str, task_id: str) -> bool:
-    return firebase_service.send_notification(device_token=device_token, title="مهمة جديدة ✅", body=f"عين لك {assigned_by}: {task_title}", data={"type": "task", "task_id": task_id})
+def send_comment_notification(
+    device_token: str,
+    user_name: str,
+    comment_text: str,
+    post_id: str
+) -> bool:
+    """إرسال إشعار تعليق"""
+    return firebase_service.send_notification(
+        device_token=device_token,
+        title="تعليق جديد 💬",
+        body=f"{user_name}: {comment_text[:50]}...",
+        data={"type": "comment", "post_id": post_id}
+    )
 
-def send_group_notification(device_token: str, group_name: str, message: str, group_id: str) -> bool:
-    return firebase_service.send_notification(device_token=device_token, title=f"رسالة في {group_name} 👥", body=message[:50], data={"type": "group", "group_id": group_id})
+
+def send_friend_request_notification(
+    device_token: str,
+    user_name: str,
+    user_id: str
+) -> bool:
+    """إرسال إشعار طلب صداقة"""
+    return firebase_service.send_notification(
+        device_token=device_token,
+        title="طلب صداقة جديد 👋",
+        body=f"أرسل لك {user_name} طلب صداقة",
+        data={"type": "friend_request", "user_id": user_id}
+    )
+
+
+def send_message_notification(
+    device_token: str,
+    user_name: str,
+    message_text: str,
+    conversation_id: str
+) -> bool:
+    """إرسال إشعار رسالة"""
+    return firebase_service.send_notification(
+        device_token=device_token,
+        title=f"رسالة من {user_name} 📨",
+        body=message_text[:50],
+        data={"type": "message", "conversation_id": conversation_id}
+    )
+
+
+def send_task_notification(
+    device_token: str,
+    task_title: str,
+    assigned_by: str,
+    task_id: str
+) -> bool:
+    """إرسال إشعار مهمة"""
+    return firebase_service.send_notification(
+        device_token=device_token,
+        title="مهمة جديدة ✅",
+        body=f"عين لك {assigned_by}: {task_title}",
+        data={"type": "task", "task_id": task_id}
+    )
+
+
+def send_group_notification(
+    device_token: str,
+    group_name: str,
+    message: str,
+    group_id: str
+) -> bool:
+    """إرسال إشعار مجموعة"""
+    return firebase_service.send_notification(
+        device_token=device_token,
+        title=f"رسالة في {group_name} 👥",
+        body=message[:50],
+        data={"type": "group", "group_id": group_id}
+    )

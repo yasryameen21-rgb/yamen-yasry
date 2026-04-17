@@ -1,0 +1,5 @@
+[
+  "test_feature_workflows.py::test_follow_and_friend_request_flow",
+  "test_feature_workflows.py::test_post_save_repost_report_and_live_request_flow",
+  "test_main.py::test_read_main"
+]

@@ -2,7 +2,7 @@
 نماذج قاعدة البيانات باستخدام SQLAlchemy
 """
 
-from sqlalchemy import Column, String, Integer, DateTime, Boolean, Text, ForeignKey, Table, Enum, JSON
+from sqlalchemy import Column, String, Integer, DateTime, Boolean, Text, ForeignKey, Table, Enum, JSON, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -567,3 +567,114 @@ class LiveStream(Base):
     
     def __repr__(self):
         return f"<LiveStream(id={self.id}, host_id={self.host_id}, status={self.status})>"
+
+
+class FollowRelation(Base):
+    """علاقة متابعة بين مستخدمين"""
+    __tablename__ = "follow_relations"
+    __table_args__ = (
+        UniqueConstraint("follower_id", "following_id", name="uq_follow_relation"),
+    )
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    follower_id = Column(String, ForeignKey("users.id"), nullable=False)
+    following_id = Column(String, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class FriendRequestStatus(str, enum.Enum):
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    REJECTED = "rejected"
+    CANCELLED = "cancelled"
+
+
+class FriendRequest(Base):
+    """طلبات الصداقة"""
+    __tablename__ = "friend_requests"
+    __table_args__ = (
+        UniqueConstraint("sender_id", "receiver_id", name="uq_friend_request_pair"),
+    )
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    sender_id = Column(String, ForeignKey("users.id"), nullable=False)
+    receiver_id = Column(String, ForeignKey("users.id"), nullable=False)
+    message = Column(Text, nullable=True)
+    status = Column(Enum(FriendRequestStatus), default=FriendRequestStatus.PENDING)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    responded_at = Column(DateTime, nullable=True)
+
+
+class SavedPost(Base):
+    """المنشورات المحفوظة"""
+    __tablename__ = "saved_posts"
+    __table_args__ = (
+        UniqueConstraint("user_id", "post_id", name="uq_saved_post"),
+    )
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    post_id = Column(String, ForeignKey("posts.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class PostShare(Base):
+    """سجل إعادة نشر/مشاركة المنشورات"""
+    __tablename__ = "post_shares"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    original_post_id = Column(String, ForeignKey("posts.id"), nullable=False)
+    repost_post_id = Column(String, ForeignKey("posts.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class ReportStatus(str, enum.Enum):
+    PENDING = "pending"
+    REVIEWING = "reviewing"
+    RESOLVED = "resolved"
+    REJECTED = "rejected"
+
+
+class ContentReport(Base):
+    """بلاغات المحتوى والمستخدمين"""
+    __tablename__ = "content_reports"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    reporter_id = Column(String, ForeignKey("users.id"), nullable=False)
+    target_type = Column(String, nullable=False)
+    target_id = Column(String, nullable=False)
+    reason = Column(String, nullable=False)
+    details = Column(Text, nullable=True)
+    status = Column(Enum(ReportStatus), default=ReportStatus.PENDING)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class LiveRequestStatus(str, enum.Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
+class LiveJoinRequest(Base):
+    """طلبات الانضمام للبث المباشر"""
+    __tablename__ = "live_join_requests"
+    __table_args__ = (
+        UniqueConstraint("stream_id", "requester_id", name="uq_live_join_request_pair"),
+    )
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    stream_id = Column(String, ForeignKey("live_streams.id"), nullable=False)
+    requester_id = Column(String, ForeignKey("users.id"), nullable=False)
+    note = Column(Text, nullable=True)
+    status = Column(Enum(LiveRequestStatus), default=LiveRequestStatus.PENDING)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    responded_at = Column(DateTime, nullable=True)
+
+    stream = relationship("LiveStream", backref="join_requests")
+
+    def __repr__(self):
+        return f"<LiveJoinRequest(id={self.id}, stream_id={self.stream_id}, requester_id={self.requester_id})>"
