@@ -574,6 +574,8 @@ class OnboardingRegistrationRequest(BaseModel):
     date_of_birth: Optional[datetime] = None
     contact_method: str = Field(..., pattern="^(phone|email)$")
     contact: str = Field(..., min_length=3, max_length=120)
+    password: str = Field(..., min_length=8, max_length=128)
+    verification_code: str = Field(..., min_length=4, max_length=8)
 
 
 class OnboardingProfileResponse(BaseModel):

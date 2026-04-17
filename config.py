@@ -63,8 +63,15 @@ class Settings(BaseSettings):
     def normalize_database_url(cls, value):
         if value is None:
             return "sqlite:///./yamenshat.db"
-        if isinstance(value, str) and not value.strip():
-            return "sqlite:///./yamenshat.db"
+
+        if isinstance(value, str):
+            normalized = value.strip().strip('"').strip("'")
+            if not normalized:
+                return "sqlite:///./yamenshat.db"
+            if normalized.startswith("postgres://"):
+                normalized = normalized.replace("postgres://", "postgresql://", 1)
+            return normalized
+
         return value
 
     @field_validator("allowed_origins", mode="before")
