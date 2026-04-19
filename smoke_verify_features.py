@@ -17,13 +17,23 @@ def auth_headers(token: str):
 
 def register(first_name: str, last_name: str):
     unique = uuid.uuid4().hex[:8]
+    email = f"{first_name.lower()}.{last_name.lower()}.{unique}@example.com"
+
+    otp_response = client.post(
+        "/api/auth/send-otp",
+        json={"email": email},
+    )
+    otp_response.raise_for_status()
+
     response = client.post(
         "/api/auth/register-profile",
         json={
             "first_name": first_name,
             "last_name": last_name,
             "contact_method": "email",
-            "contact": f"{first_name.lower()}.{last_name.lower()}.{unique}@example.com",
+            "contact": email,
+            "password": "Passw0rd!",
+            "verification_code": "123456",
         },
     )
     response.raise_for_status()

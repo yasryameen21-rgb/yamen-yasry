@@ -11,13 +11,23 @@ client = TestClient(app)
 
 def _register_user(first_name: str, last_name: str):
     unique = uuid.uuid4().hex[:8]
+    email = f"{first_name.lower()}.{last_name.lower()}.{unique}@example.com"
+
+    otp_response = client.post(
+        "/api/auth/send-otp",
+        json={"email": email},
+    )
+    assert otp_response.status_code == 200, otp_response.text
+
     response = client.post(
         "/api/auth/register-profile",
         json={
             "first_name": first_name,
             "last_name": last_name,
             "contact_method": "email",
-            "contact": f"{first_name.lower()}.{last_name.lower()}.{unique}@example.com",
+            "contact": email,
+            "password": "Passw0rd!",
+            "verification_code": "123456",
         },
     )
     assert response.status_code == 200, response.text

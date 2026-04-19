@@ -15,6 +15,7 @@ from security import verify_token, get_current_user
 from routes_auth import router as auth_router
 from routes_users import router as users_router
 from routes_posts import router as posts_router
+from routes_comments import router as comments_router
 from routes_notifications import router as notifications_router
 from routes_live import router as live_router
 from routes_recording import router as recording_router
@@ -105,6 +106,7 @@ async def root():
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(posts_router)
+app.include_router(comments_router)
 app.include_router(notifications_router)
 app.include_router(live_router)
 app.include_router(recording_router)

@@ -103,6 +103,8 @@ class UserResponse(BaseModel):
     is_banned: bool
     dark_mode_enabled: bool
     primary_color: str
+    friend_ids: List[str] = []
+    group_ids: List[str] = []
     created_at: datetime
     updated_at: datetime
     last_login: Optional[datetime]
@@ -146,6 +148,8 @@ class PostResponse(BaseModel):
     """نموذج استجابة المنشور"""
     id: str
     user_id: str
+    user_name: Optional[str] = None
+    user_profile_image: Optional[str] = None
     content: str
     post_type: PostTypeEnum
     media_url: Optional[str]
@@ -172,11 +176,18 @@ class CommentCreate(BaseModel):
     content: str = Field(..., min_length=1, max_length=1000)
 
 
+class CommentUpdate(BaseModel):
+    """نموذج تحديث تعليق"""
+    content: Optional[str] = Field(default=None, min_length=1, max_length=1000)
+
+
 class CommentResponse(BaseModel):
     """نموذج استجابة التعليق"""
     id: str
     post_id: str
     user_id: str
+    user_name: Optional[str] = None
+    user_profile_image: Optional[str] = None
     content: str
     reactions: Dict = {}
     created_at: datetime
@@ -190,6 +201,7 @@ class CommentResponse(BaseModel):
 
 class NotificationCreate(BaseModel):
     """نموذج إنشاء إشعار"""
+    user_id: Optional[str] = None
     title: str
     message: str
     notification_type: NotificationTypeEnum
@@ -229,9 +241,12 @@ class MessageResponse(BaseModel):
     id: str
     conversation_id: str
     sender_id: str
+    sender_name: Optional[str] = None
+    sender_profile_image: Optional[str] = None
     content: str
     message_type: str
     media_url: Optional[str]
+    reply_to_message_id: Optional[str] = None
     is_read: bool
     is_encrypted: bool
     encryption_v: str
@@ -258,6 +273,7 @@ class ConversationResponse(BaseModel):
     id: str
     name: Optional[str]
     is_group_chat: bool
+    participant_ids: List[str] = []
     is_muted: bool
     is_pinned: bool
     unread_count: int
@@ -333,6 +349,7 @@ class GroupResponse(BaseModel):
     group_type: str
     admin_id: str
     group_image_url: Optional[str]
+    member_ids: List[str] = []
     members_count: int = 0
     created_at: datetime
     
@@ -396,6 +413,8 @@ class StoryResponse(BaseModel):
     """نموذج استجابة القصة"""
     id: str
     user_id: str
+    user_name: Optional[str] = None
+    user_profile_image: Optional[str] = None
     media_url: str
     media_type: str
     created_at: datetime
@@ -706,6 +725,7 @@ class CloudRecordingResponse(BaseModel):
 
     id: str
     live_stream_id: str = Field(validation_alias=AliasChoices("live_stream_id", "liveStreamId"), serialization_alias="liveStreamId")
+    user_id: Optional[str] = None
     title: str
     description: Optional[str]
     video_url: str = Field(validation_alias=AliasChoices("video_url", "videoUrl"), serialization_alias="videoUrl")

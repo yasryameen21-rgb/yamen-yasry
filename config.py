@@ -19,8 +19,6 @@ DEFAULT_ALLOWED_ORIGINS = [
     "http://localhost:8000",
     "http://127.0.0.1:3000",
     "http://127.0.0.1:8000",
-    "https://web-50ne.onrender.com",
-    "https://yamen-yasry.onrender.com",
     "https://yamen-yasry-backend.onrender.com",
 ]
 

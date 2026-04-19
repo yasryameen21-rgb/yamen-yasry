@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from database import get_db
-from models import Notification, User
+from models import Notification, NotificationType, User
 from schemas import NotificationCreate, NotificationResponse
 from security import get_current_user
 
@@ -29,13 +29,14 @@ async def create_notification(
             detail="يجب تسجيل الدخول"
         )
     
-    # التحقق من وجود المستخدم
-    target_user_id = notification_data.related_id or current_user_id
+    target_user_id = notification_data.user_id or current_user_id
+
+    # التحقق من وجود المستخدم المستهدف
     user = db.query(User).filter(User.id == target_user_id).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="المستخدم غير موجود"
+            detail="المستخدم المستهدف غير موجود"
         )
     
     # إنشاء الإشعار
@@ -235,7 +236,7 @@ async def get_unread_count(
         Notification.is_read == False
     ).count()
     
-    return {"unread_count": unread_count}
+    return {"unread_count": unread_count, "count": unread_count}
 
 
 # ==================== إرسال الإشعارات ====================
@@ -262,7 +263,7 @@ async def send_like_notification(
         user_id=post_author_id,
         title="إعجاب جديد",
         message=f"أعجب {user.name} بمنشورك",
-        notification_type="like",
+        notification_type=NotificationType.LIKE,
         related_id=post_id,
         is_read=False
     )
@@ -296,7 +297,7 @@ async def send_comment_notification(
         user_id=post_author_id,
         title="تعليق جديد",
         message=f"علق {user.name}: {comment_text[:50]}...",
-        notification_type="comment",
+        notification_type=NotificationType.COMMENT,
         related_id=post_id,
         is_read=False
     )
@@ -328,7 +329,7 @@ async def send_task_assignment_notification(
         user_id=assigned_to_id,
         title="مهمة جديدة",
         message=f"تم تعيين لك مهمة: {task_title}",
-        notification_type="task_assigned",
+        notification_type=NotificationType.TASK_ASSIGNED,
         related_id=task_id,
         is_read=False
     )

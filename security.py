@@ -4,10 +4,10 @@
 
 from datetime import datetime, timedelta
 from typing import Optional
-from fastapi import Header
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
+from fastapi import Header
 from config import settings
 
 # إعدادات التشفير
@@ -132,7 +132,7 @@ def create_tokens(user_id: str, email: str, role: str = "user") -> Token:
 
 
 async def get_current_user(
-    authorization: Optional[str] = Header(default=None, alias="Authorization")
+    authorization: Optional[str] = Header(default=None)
 ):
     """الحصول على المستخدم الحالي من التوكن"""
     if not authorization:

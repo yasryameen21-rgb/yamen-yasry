@@ -204,6 +204,26 @@ class User(Base):
     settings = relationship("UserSettings", back_populates="user", uselist=False)
     stories = relationship("Story", back_populates="author")
     
+    @property
+    def friend_ids(self):
+        return [friend.id for friend in self.friends or []]
+
+    @property
+    def group_ids(self):
+        return [group.id for group in self.groups or []]
+
+    @property
+    def friends_count(self):
+        return len(self.friends or [])
+
+    @property
+    def posts_count(self):
+        return len(self.posts or [])
+
+    @property
+    def groups_count(self):
+        return len(self.groups or [])
+    
     def __repr__(self):
         return f"<User(id={self.id}, name={self.name}, email={self.email})>"
 
@@ -229,6 +249,14 @@ class Group(Base):
     posts = relationship("Post", back_populates="group")
     tasks = relationship("SharedTask", back_populates="group")
     marketplace_items = relationship("MarketplaceItem", back_populates="group")
+    
+    @property
+    def member_ids(self):
+        return [member.id for member in self.members or []]
+
+    @property
+    def members_count(self):
+        return len(self.members or [])
     
     def __repr__(self):
         return f"<Group(id={self.id}, name={self.name})>"
@@ -295,6 +323,18 @@ class Post(Base):
     group = relationship("Group", back_populates="posts")
     comments = relationship("Comment", back_populates="post", cascade="all, delete-orphan")
     
+    @property
+    def user_name(self):
+        return self.author.name if self.author else None
+
+    @property
+    def user_profile_image(self):
+        return self.author.profile_image_url if self.author else None
+
+    @property
+    def comments_count(self):
+        return len(self.comments or [])
+    
     def __repr__(self):
         return f"<Post(id={self.id}, user_id={self.user_id})>"
 
@@ -318,6 +358,14 @@ class Comment(Base):
     # العلاقات
     post = relationship("Post", back_populates="comments")
     author = relationship("User", back_populates="comments")
+    
+    @property
+    def user_name(self):
+        return self.author.name if self.author else None
+
+    @property
+    def user_profile_image(self):
+        return self.author.profile_image_url if self.author else None
     
     def __repr__(self):
         return f"<Comment(id={self.id}, post_id={self.post_id})>"
@@ -377,6 +425,14 @@ class Message(Base):
     sender = relationship("User", back_populates="messages")
     conversation = relationship("Conversation", back_populates="messages")
     
+    @property
+    def sender_name(self):
+        return self.sender.name if self.sender else None
+
+    @property
+    def sender_profile_image(self):
+        return self.sender.profile_image_url if self.sender else None
+    
     def __repr__(self):
         return f"<Message(id={self.id}, conversation_id={self.conversation_id})>"
 
@@ -400,6 +456,10 @@ class Conversation(Base):
     # العلاقات
     participants = relationship("User", secondary=conversation_participants)
     messages = relationship("Message", back_populates="conversation", cascade="all, delete-orphan")
+    
+    @property
+    def participant_ids(self):
+        return [participant.id for participant in self.participants or []]
     
     def __repr__(self):
         return f"<Conversation(id={self.id}, name={self.name})>"
@@ -461,6 +521,18 @@ class Story(Base):
     # العلاقات
     author = relationship("User", back_populates="stories")
     
+    @property
+    def user_name(self):
+        return self.author.name if self.author else None
+
+    @property
+    def user_profile_image(self):
+        return self.author.profile_image_url if self.author else None
+
+    @property
+    def view_count(self):
+        return len(self.viewed_by_users or [])
+    
     def __repr__(self):
         return f"<Story(id={self.id}, user_id={self.user_id})>"
 
@@ -496,6 +568,10 @@ class CloudRecording(Base):
     
     # العلاقات
     live_stream = relationship("LiveStream", back_populates="recordings")
+    
+    @property
+    def user_id(self):
+        return self.live_stream.host_id if self.live_stream else None
     
     def __repr__(self):
         return f"<CloudRecording(id={self.id}, live_stream_id={self.live_stream_id})>"
