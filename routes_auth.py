@@ -3,7 +3,9 @@
 """
 
 from datetime import datetime
+import secrets
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -45,6 +47,100 @@ def _normalize_phone(value: str | None) -> str | None:
         return None
     normalized = value.strip().replace(" ", "").replace("-", "")
     return normalized or None
+
+
+def _digits_only(value: str | None) -> str:
+    if not value:
+        return ""
+    return "".join(ch for ch in value if ch.isdigit())
+
+
+def _phone_variants(value: str | None) -> list[str]:
+    normalized = _normalize_phone(value)
+    if not normalized:
+        return []
+
+    digits = _digits_only(normalized)
+    candidates: list[str] = []
+
+    def add(candidate: str | None):
+        if candidate and candidate not in candidates:
+            candidates.append(candidate)
+
+    add(normalized)
+    add(digits)
+
+    if digits:
+        add(f"+{digits}")
+        if digits.startswith("00") and len(digits) > 2:
+            intl_digits = digits[2:]
+            add(intl_digits)
+            add(f"+{intl_digits}")
+        else:
+            add(f"00{digits}")
+
+    return candidates
+
+
+def _phone_email_variants(value: str | None) -> list[str]:
+    candidates: list[str] = []
+
+    def add(candidate: str | None):
+        if candidate and candidate not in candidates:
+            candidates.append(candidate)
+
+    for phone_variant in _phone_variants(value):
+        add(f"{phone_variant}@familyhub.local")
+        digits = _digits_only(phone_variant)
+        if digits:
+            add(f"{digits}@familyhub.local")
+            add(f"+{digits}@familyhub.local")
+            if digits.startswith("00") and len(digits) > 2:
+                intl_digits = digits[2:]
+                add(f"{intl_digits}@familyhub.local")
+                add(f"+{intl_digits}@familyhub.local")
+            else:
+                add(f"00{digits}@familyhub.local")
+
+    return candidates
+
+
+def _extract_phone_like_identifier(identifier: str | None) -> str | None:
+    normalized_email = _normalize_email(identifier)
+    if normalized_email and normalized_email.endswith("@familyhub.local"):
+        return normalized_email[: -len("@familyhub.local")]
+
+    normalized_phone = _normalize_phone(identifier)
+    digits = _digits_only(normalized_phone)
+    if digits:
+        return normalized_phone
+
+    return None
+
+
+def _find_user_by_identifier(db: Session, identifier: str | None):
+    normalized_email = _normalize_email(identifier)
+
+    if normalized_email and "@" in normalized_email and not normalized_email.endswith("@familyhub.local"):
+        direct_user = db.query(User).filter(User.email == normalized_email).first()
+        if direct_user:
+            return direct_user
+
+    phone_like_identifier = _extract_phone_like_identifier(identifier)
+    if phone_like_identifier:
+        phone_variants = _phone_variants(phone_like_identifier)
+        email_variants = _phone_email_variants(phone_like_identifier)
+        return db.query(User).filter(
+            or_(
+                User.email.in_(email_variants),
+                User.phone_number.in_(phone_variants),
+            )
+        ).first()
+
+    if normalized_email:
+        return db.query(User).filter(User.email == normalized_email).first()
+
+    return None
 
 
 def _resolve_otp_identifier(phone_number: str | None = None, email: str | None = None) -> str:
@@ -186,8 +282,14 @@ async def login(credentials: UserLogin, db: Session = Depends(get_db)):
     """
     تسجيل الدخول
     """
-    normalized_email = _normalize_email(credentials.email)
-    user = db.query(User).filter(User.email == normalized_email).first()
+    login_identifier = (credentials.email or "").strip()
+    if not login_identifier:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="البريد الإلكتروني أو رقم الجوال مطلوب"
+        )
+
+    user = _find_user_by_identifier(db, login_identifier)
 
     if not user or not verify_password(credentials.password, user.password_hash):
         raise HTTPException(
@@ -284,20 +386,29 @@ async def change_password(
 
 @router.post("/reset-password")
 async def reset_password(data: ResetPassword, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == _normalize_email(data.email)).first()
+    login_identifier = _resolve_otp_identifier(data.phone_number, data.email)
+
+    if data.verification_code:
+        _assert_valid_otp(login_identifier, data.verification_code)
+
+    user = _find_user_by_identifier(db, login_identifier)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="البريد الإلكتروني غير موجود"
+            detail="الحساب غير موجود"
         )
 
-    temp_password = "TempPassword123!"
+    temp_password = f"Temp-{secrets.token_hex(4)}!A"
     user.password_hash = get_password_hash(temp_password)
     db.commit()
 
+    if data.verification_code:
+        _clear_otp(login_identifier)
+
     return {
         "success": True,
-        "message": "تم إرسال تعليمات إعادة التعيين إلى بريدك الإلكتروني"
+        "message": "تم إنشاء كلمة مرور مؤقتة جديدة بنجاح",
+        "temporary_password": temp_password
     }
 
 
@@ -358,7 +469,7 @@ async def login_phone(data: OtpVerify, db: Session = Depends(get_db)):
 
     _assert_valid_otp(normalized_phone, data.otp_code)
 
-    user = db.query(User).filter(User.phone_number == normalized_phone).first()
+    user = _find_user_by_identifier(db, normalized_phone)
     if not user:
         raise HTTPException(status_code=404, detail="الحساب غير موجود، أنشئ حساباً أولاً")
 
@@ -382,7 +493,7 @@ async def login_email(data: OtpVerify, db: Session = Depends(get_db)):
 
     _assert_valid_otp(normalized_email, data.otp_code)
 
-    user = db.query(User).filter(User.email == normalized_email).first()
+    user = _find_user_by_identifier(db, normalized_email)
     if not user:
         raise HTTPException(status_code=404, detail="الحساب غير موجود، أنشئ حساباً أولاً")
 

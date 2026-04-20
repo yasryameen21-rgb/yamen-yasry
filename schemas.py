@@ -53,7 +53,7 @@ class UserRegister(BaseModel):
 
 class UserLogin(BaseModel):
     """نموذج تسجيل الدخول"""
-    email: EmailStr
+    email: str
     password: str
 
 
@@ -65,7 +65,9 @@ class ChangePassword(BaseModel):
 
 class ResetPassword(BaseModel):
     """نموذج إعادة تعيين كلمة المرور"""
-    email: EmailStr
+    email: Optional[str] = None
+    phone_number: Optional[str] = None
+    verification_code: Optional[str] = None
 
 
 class VerifyEmail(BaseModel):
