@@ -387,9 +387,7 @@ async def change_password(
 @router.post("/reset-password")
 async def reset_password(data: ResetPassword, db: Session = Depends(get_db)):
     login_identifier = _resolve_otp_identifier(data.phone_number, data.email)
-
-    if data.verification_code:
-        _assert_valid_otp(login_identifier, data.verification_code)
+    _assert_valid_otp(login_identifier, data.verification_code)
 
     user = _find_user_by_identifier(db, login_identifier)
     if not user:
@@ -398,17 +396,21 @@ async def reset_password(data: ResetPassword, db: Session = Depends(get_db)):
             detail="الحساب غير موجود"
         )
 
-    temp_password = f"Temp-{secrets.token_hex(4)}!A"
-    user.password_hash = get_password_hash(temp_password)
-    db.commit()
+    if not data.new_password:
+        return {
+            "success": True,
+            "message": "تم التحقق من الرمز بنجاح. أدخل كلمة المرور الجديدة الآن",
+            "password_updated": False
+        }
 
-    if data.verification_code:
-        _clear_otp(login_identifier)
+    user.password_hash = get_password_hash(data.new_password)
+    db.commit()
+    _clear_otp(login_identifier)
 
     return {
         "success": True,
-        "message": "تم إنشاء كلمة مرور مؤقتة جديدة بنجاح",
-        "temporary_password": temp_password
+        "message": "تم حفظ كلمة المرور الجديدة بنجاح",
+        "password_updated": True
     }
 
 

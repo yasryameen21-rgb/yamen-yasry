@@ -68,6 +68,7 @@ class ResetPassword(BaseModel):
     email: Optional[str] = None
     phone_number: Optional[str] = None
     verification_code: Optional[str] = None
+    new_password: Optional[str] = Field(default=None, min_length=8, max_length=128)
 
 
 class VerifyEmail(BaseModel):
